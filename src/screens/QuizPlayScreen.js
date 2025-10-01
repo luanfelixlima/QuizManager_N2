@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { getRandomQuestions } from '../db';
+import { quizStyles as styles } from '../screens/style/styles';
 
 export default function QuizPlayScreen({ route, navigation }) {
   const { themeId, totalQuestions } = route.params;
@@ -40,16 +41,23 @@ export default function QuizPlayScreen({ route, navigation }) {
   }
 
   if (questions.length === 0) 
-    return <View style={styles.container}><Text>Carregando...</Text></View>;
+    return <View style={styles.container}><Text style={styles.loading}>Carregando...</Text></View>;
 
   const q = questions[index];
   const selectedAltId = answers[q.id];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.counter}>{index + 1} / {questions.length}</Text>
-      <Text style={styles.question}>{q.text}</Text>
-      <ScrollView style={{ marginTop: 12 }}>
+      {/* Contador */}
+      <Text style={styles.counter}>Pergunta {index + 1} de {questions.length}</Text>
+
+      {/* Enunciado */}
+      <View style={styles.questionBox}>
+        <Text style={styles.question}>{q.text}</Text>
+      </View>
+
+      {/* Alternativas */}
+      <ScrollView style={{ marginVertical: 12 }}>
         {q.alts.map(a => {
           const isSelected = a.id === selectedAltId;
           return (
@@ -57,46 +65,32 @@ export default function QuizPlayScreen({ route, navigation }) {
               key={a.id}
               style={[styles.alt, isSelected && styles.selectedAlt]}
               onPress={() => selectAlt(q.id, a.id)}
+              activeOpacity={0.7}
             >
-              <Text style={isSelected && styles.selectedText}>{a.text}</Text>
+              <Text style={[styles.altText, isSelected && styles.selectedText]}>{a.text}</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
+      {/* Navegação */}
       <View style={styles.navigation}>
-        {index > 0 && <Button title="Anterior" onPress={() => setIndex(index - 1)} />}
-        {index < questions.length - 1 
-          ? <Button title="Próxima" onPress={() => setIndex(index + 1)} />
-          : <Button title="Finalizar Quiz" onPress={finish} />
-        }
+        {index > 0 && (
+          <TouchableOpacity style={styles.navButton} onPress={() => setIndex(index - 1)}>
+            <Text style={styles.navButtonText}>◀ Anterior</Text>
+          </TouchableOpacity>
+        )}
+
+        {index < questions.length - 1 ? (
+          <TouchableOpacity style={styles.navButton} onPress={() => setIndex(index + 1)}>
+            <Text style={styles.navButtonText}>Próxima ▶</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[styles.navButton, styles.finishButton]} onPress={finish}>
+            <Text style={styles.navButtonText}>Finalizar Quiz ✅</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  counter: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  question: { fontSize: 18, marginBottom: 12 },
-  alt: { 
-    padding: 12, 
-    borderWidth: 1, 
-    borderColor: '#ccc', 
-    borderRadius: 6, 
-    marginBottom: 8 
-  },
-  selectedAlt: {
-    backgroundColor: '#cce5ff',
-    borderColor: '#3399ff',
-  },
-  selectedText: {
-    fontWeight: 'bold',
-    color: '#0056b3',
-  },
-  navigation: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginTop: 16 
-  },
-});

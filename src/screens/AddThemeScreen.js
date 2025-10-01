@@ -1,6 +1,6 @@
 // src/screens/AddThemeScreen.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, Alert } from 'react-native';
 import { insertTheme } from '../db';
 import { commonStyles, colors } from './style/styles';
 
@@ -20,7 +20,6 @@ export default function AddThemeScreen({ navigation }) {
       navigation.goBack();
     } catch (err) {
       console.log('insertTheme error:', err);
-      // erro comum: UNIQUE constraint failed -> tema duplicado
       if (err?.message?.includes('UNIQUE') || err?.message?.toLowerCase().includes('unique')) {
         Alert.alert('Erro', 'Já existe um tema com esse nome');
       } else {
@@ -30,19 +29,18 @@ export default function AddThemeScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={commonStyles.container}>
+      <Text style={commonStyles.label}>Nome do Tema</Text>
       <TextInput
-        placeholder="Nome do tema"
+        placeholder="Digite o tema"
         value={name}
         onChangeText={setName}
-        style={styles.input}
+        style={commonStyles.input}
       />
-      <Button title="Salvar" onPress={save} />
+
+      <TouchableOpacity style={commonStyles.button} onPress={save} activeOpacity={0.8}>
+        <Text style={commonStyles.buttonText}>Salvar</Text>
+      </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 12, borderRadius: 6 }
-});

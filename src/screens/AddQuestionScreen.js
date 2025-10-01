@@ -1,8 +1,9 @@
 // src/screens/AddQuestionScreen.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker'; // instale: expo install @react-native-picker/picker
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { getThemes, insertQuestion } from '../db';
+import { commonStyles, colors } from './style/styles';
 
 export default function AddQuestionScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
@@ -16,9 +17,7 @@ export default function AddQuestionScreen({ navigation }) {
       try {
         const temas = await getThemes();
         setThemes(temas);
-        if (temas.length > 0) {
-          setSelectedTheme(temas[0].id); // já seleciona o primeiro
-        }
+        if (temas.length > 0) setSelectedTheme(temas[0].id);
       } catch (err) {
         console.error('Erro ao carregar temas:', err);
       }
@@ -26,78 +25,79 @@ export default function AddQuestionScreen({ navigation }) {
     loadThemes();
   }, []);
 
-async function save() {
-  if (!selectedTheme || !question.trim()) {
-    Alert.alert('Erro', 'Preencha a pergunta e selecione um tema.');
-    return;
-  }
+  async function save() {
+    if (!selectedTheme || !question.trim()) {
+      Alert.alert('Erro', 'Preencha a pergunta e selecione um tema.');
+      return;
+    }
 
-  if (alternatives.some((alt) => !alt.trim())) {
-    Alert.alert('Erro', 'Preencha todas as alternativas.');
-    return;
-  }
+    if (alternatives.some((alt) => !alt.trim())) {
+      Alert.alert('Erro', 'Preencha todas as alternativas.');
+      return;
+    }
 
-  try {
-    await insertQuestion(selectedTheme, question, alternatives, correctIndex);
-    Alert.alert('Sucesso', 'Pergunta cadastrada!');
-    navigation.goBack();
-  } catch (err) {
-    console.error('Erro ao inserir pergunta:', err);
-    Alert.alert('Erro', err.message || 'Falha ao cadastrar pergunta.');
+    try {
+      await insertQuestion(selectedTheme, question, alternatives, correctIndex);
+      Alert.alert('Sucesso', 'Pergunta cadastrada!');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Erro ao inserir pergunta:', err);
+      Alert.alert('Erro', err.message || 'Falha ao cadastrar pergunta.');
+    }
   }
-}
-
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Tema:</Text>
-      <Picker
-        selectedValue={selectedTheme}
-        onValueChange={(itemValue) => setSelectedTheme(itemValue)}
-        style={styles.picker}
-      >
-        {themes.map((t) => (
-          <Picker.Item key={t.id} label={t.name} value={t.id} />
-        ))}
-      </Picker>
+    <ScrollView style={commonStyles.container}>
+      <Text style={commonStyles.label}>Tema:</Text>
+      <View style={commonStyles.picker}>
+        <Picker
+          selectedValue={selectedTheme}
+          onValueChange={(itemValue) => setSelectedTheme(itemValue)}
+        >
+          {themes.map((t) => (
+            <Picker.Item key={t.id} label={t.name} value={t.id} />
+          ))}
+        </Picker>
+      </View>
 
-      <Text style={styles.label}>Pergunta:</Text>
+      <Text style={commonStyles.label}>Pergunta:</Text>
       <TextInput
         value={question}
         onChangeText={setQuestion}
         placeholder="Digite a pergunta"
-        style={styles.input}
+        style={commonStyles.input}
       />
 
-      {alternatives.map((alt, idx) => (
-        <View key={idx} style={styles.altRow}>
-          <TextInput
-            value={alt}
-            onChangeText={(txt) => {
-              const newAlts = [...alternatives];
-              newAlts[idx] = txt;
-              setAlternatives(newAlts);
-            }}
-            placeholder={`Alternativa ${idx + 1}`}
-            style={styles.inputAlt}
-          />
-          <Button
-            title={idx === correctIndex ? '✔' : 'Marcar correta'}
-            onPress={() => setCorrectIndex(idx)}
-          />
-        </View>
-      ))}
+      {alternatives.map((alt, idx) => {
+        const isCorrect = idx === correctIndex;
+        return (
+          <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <TextInput
+              value={alt}
+              onChangeText={(txt) => {
+                const newAlts = [...alternatives];
+                newAlts[idx] = txt;
+                setAlternatives(newAlts);
+              }}
+              placeholder={`Alternativa ${idx + 1}`}
+              style={[commonStyles.input, { flex: 1, marginRight: 8 }]}
+            />
+            <TouchableOpacity
+              style={[
+                commonStyles.button,
+                { paddingHorizontal: 12, backgroundColor: isCorrect ? colors.secondary : colors.primary },
+              ]}
+              onPress={() => setCorrectIndex(idx)}
+            >
+              <Text style={commonStyles.buttonText}>{isCorrect ? '✔' : 'Marcar'}</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
 
-      <Button title="Salvar Pergunta" onPress={save} />
-    </View>
+      <TouchableOpacity style={commonStyles.button} onPress={save}>
+        <Text style={commonStyles.buttonText}>Salvar Pergunta</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  label: { fontWeight: 'bold', marginTop: 12 },
-  picker: { borderWidth: 1, borderColor: '#ccc', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 6, marginBottom: 12 },
-  altRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  inputAlt: { flex: 1, borderWidth: 1, borderColor: '#ccc', padding: 8, borderRadius: 6, marginRight: 8 },
-});

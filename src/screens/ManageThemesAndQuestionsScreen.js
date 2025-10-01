@@ -1,22 +1,25 @@
+// src/screens/ManageThemesAndQuestionsScreen.js
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { getThemesWithCount, deleteTheme, getQuestionsByTheme, deleteQuestion } from '../db';
 import { useFocusEffect } from '@react-navigation/native';
-
+import { commonStyles, colors } from './style/styles';
 
 export default function ManageThemesAndQuestionsScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [questions, setQuestions] = useState([]);
+
   const loadThemes = async () => {
-      const data = await getThemesWithCount();
-      setThemes(data);
-    };
+    const data = await getThemesWithCount();
+    setThemes(data);
+    if (data.length > 0 && !selectedTheme) {
+      setSelectedTheme(data[0].id);
+      loadQuestions(data[0].id);
+    }
+  };
 
-
-
-  // Carrega perguntas de um tema
   async function loadQuestions(themeId) {
     const data = await getQuestionsByTheme(themeId);
     setQuestions(data);
@@ -28,79 +31,115 @@ export default function ManageThemesAndQuestionsScreen({ navigation }) {
     }, [])
   );
 
-  // Atualiza perguntas ao trocar tema
   const onThemeChange = (themeId) => {
     setSelectedTheme(themeId);
     loadQuestions(themeId);
   };
 
-  // Remove tema
   async function handleDeleteTheme(id) {
     Alert.alert(
       'Confirmação',
       'Deseja realmente remover este tema e todas as perguntas?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'OK', onPress: async () => {
+        {
+          text: 'OK',
+          onPress: async () => {
             await deleteTheme(id);
             if (id === selectedTheme) setSelectedTheme(null);
             loadThemes();
-          }}
+          },
+        },
       ]
     );
   }
 
-  // Remove pergunta
   async function handleDeleteQuestion(id) {
     Alert.alert(
       'Confirmação',
       'Deseja realmente remover esta pergunta?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'OK', onPress: async () => {
+        {
+          text: 'OK',
+          onPress: async () => {
             await deleteQuestion(id);
             loadQuestions(selectedTheme);
-          }}
+          },
+        },
       ]
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Button title="Adicionar Tema" onPress={() => navigation.navigate('AddTheme')} />
+    <View style={commonStyles.container}>
+      {/* Botões principais */}
+      <TouchableOpacity
+        style={commonStyles.button}
+        onPress={() => navigation.navigate('AddTheme')}
+      >
+        <Text style={commonStyles.buttonText}>Adicionar Tema</Text>
+      </TouchableOpacity>
 
-      <Text style={styles.label}>Selecione o tema:</Text>
-      <Picker selectedValue={selectedTheme} onValueChange={onThemeChange} style={styles.picker}>
-        {themes.map(t => (
-          <Picker.Item key={t.id} label={`${t.name} (${t.qcount} perguntas)`} value={t.id} />
-        ))}
-      </Picker>
+      <TouchableOpacity
+        style={[commonStyles.button, { marginTop: 12 }]}
+        onPress={() => navigation.navigate('AddQuestion')}
+      >
+        <Text style={commonStyles.buttonText}>Adicionar Pergunta</Text>
+      </TouchableOpacity>
 
+      {/* Seleção de tema */}
+      <Text style={[commonStyles.label, { marginTop: 24 }]}>Selecione o tema:</Text>
+      <View style={commonStyles.picker}>
+        <Picker
+          selectedValue={selectedTheme}
+          onValueChange={onThemeChange}
+          style={{ width: '100%' }}
+        >
+          {themes.map((t) => (
+            <Picker.Item
+              key={t.id}
+              label={`${t.name} (${t.qcount} perguntas)`}
+              value={t.id}
+            />
+          ))}
+        </Picker>
+      </View>
+
+      {/* Lista de perguntas e remover tema */}
       {selectedTheme && (
         <>
-          <Button title="Adicionar Pergunta" onPress={() => navigation.navigate('AddQuestion', { themeId: selectedTheme })} />
           <FlatList
             data={questions}
-            keyExtractor={item => String(item.id)}
+            keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => (
-              <View style={styles.item}>
-                <Text style={styles.text}>{item.text}</Text>
-                <Button title="Excluir" color="red" onPress={() => handleDeleteQuestion(item.id)} />
+              <View style={commonStyles.listItem}>
+                <Text style={commonStyles.listItemText}>{item.text}</Text>
+                <TouchableOpacity
+                  style={[
+                    commonStyles.button,
+                    commonStyles.buttonError,
+                    { paddingHorizontal: 12, paddingVertical: 6 },
+                  ]}
+                  onPress={() => handleDeleteQuestion(item.id)}
+                >
+                  <Text style={commonStyles.buttonText}>Excluir</Text>
+                </TouchableOpacity>
               </View>
             )}
-            ListEmptyComponent={<Text>Nenhuma pergunta cadastrada neste tema</Text>}
+            ListEmptyComponent={
+              <Text style={commonStyles.emptyText}>Nenhuma pergunta cadastrada neste tema</Text>
+            }
           />
-          <Button title="Remover Tema" color="red" onPress={() => handleDeleteTheme(selectedTheme)} />
+
+          <TouchableOpacity
+            style={[commonStyles.button, commonStyles.buttonError]}
+            onPress={() => handleDeleteTheme(selectedTheme)}
+          >
+            <Text style={commonStyles.buttonText}>Remover Tema</Text>
+          </TouchableOpacity>
         </>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  label: { fontWeight: 'bold', marginBottom: 8, marginTop: 16 },
-  picker: { borderWidth: 1, borderColor: '#ccc', marginBottom: 16 },
-  item: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 8, borderBottomWidth: 1, borderColor: '#ddd' },
-  text: { flex: 1, marginRight: 8 },
-});
