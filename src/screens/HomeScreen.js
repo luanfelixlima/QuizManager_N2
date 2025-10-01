@@ -17,7 +17,7 @@ export default function HomeScreen({ navigation }) {
           textAlign: 'center',
           marginBottom: 8,
         }}>
-          Quiz Master
+          Lueve Quiz
         </Text>
         <Text style={{
           fontSize: 16,
